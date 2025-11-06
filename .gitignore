@@ -1,0 +1,49 @@
+# Node / Packages
+node_modules/
+npm-debug.log*
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Environment / Secrets
+.env
+.env.*
+backend/.env
+backend/.env.*
+config/*.env
+*.pem
+*.key
+
+# Databases & caches
+*.db
+*.sqlite
+*.sqlite3
+backend/*.db
+backend/*.sqlite
+backend/*.sqlite3
+*.sql
+database.sqlite
+database.db
+dump.sql
+
+# Build / output / logs / temp
+dist/
+build/
+tmp/
+temp/
+*.log
+*.cache
+
+# Media & large files
+*.mp3
+*.wav
+*.mp4
+*.mov
+*.zip
+*.tar.gz
