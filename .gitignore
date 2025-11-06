@@ -47,3 +47,5 @@ temp/
 *.mov
 *.zip
 *.tar.gz
+
+clientsecret_google-cloud.json
