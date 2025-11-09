@@ -65,6 +65,37 @@
       color: #66fcf1;
       text-decoration: none;
     }
+    
+    .verify-btn {
+      background-color: #0d6efd;
+      color: white;
+      border: none;
+      padding: 8px 15px;
+      border-radius: 5px;
+      margin-top: 8px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    .verify-btn:hover {
+      background-color: #0b5ed7;
+    }
+    .otp-inputs {
+      display: flex;
+      justify-content: center;
+      gap: 5px;
+    }
+    .otp-box {
+      width: 35px;
+      height: 40px;
+      font-size: 18px;
+      text-align: center;
+      border: 2px solid #ccc;
+      border-radius: 5px;
+      outline: none;
+    }
+    .otp-box:focus {
+      border-color: #0d6efd;
+    }
   </style>
 </head>
 <body>
@@ -74,7 +105,20 @@
       <input type="text" id="school_name" placeholder="School Name" required />
       <input type="email" id="email" placeholder="Email" required />
       <input type="password" id="password" placeholder="Password" required />
-      <button type="submit">Register</button>
+      <button type="button" id="verifyEmailBtn" class="verify-btn">Verify Email</button>
+      <div id="otpSection" style="display: none; margin-top: 10px;">
+        <p>Enter the 6-digit code sent to your email:</p>
+        <div id="otpInputs" class="otp-inputs">
+          <input type="text" maxlength="1" class="otp-box" />
+          <input type="text" maxlength="1" class="otp-box" />
+          <input type="text" maxlength="1" class="otp-box" />
+          <input type="text" maxlength="1" class="otp-box" />
+          <input type="text" maxlength="1" class="otp-box" />
+          <input type="text" maxlength="1" class="otp-box" />
+        </div>
+        <button type="button" id="verifyOtpBtn" class="verify-btn">Confirm Code</button>
+      </div>
+      <button type="submit" id="registerBtn">Register</button>
     </form>
     <div class="social-login">
         <a href="/auth/google" class="google-btn">Sign up with Google</a>
@@ -105,6 +149,73 @@
       alert(result.message);
       if (response.ok) window.location.href = "login.html";
     });
+
+    const verifyBtn = document.getElementById('verifyEmailBtn');
+    const otpSection = document.getElementById('otpSection');
+    const verifyOtpBtn = document.getElementById('verifyOtpBtn');
+    const otpInputs = document.querySelectorAll('.otp-box');
+    const emailInput = document.getElementById('email');
+    // STEP 1: Send OTP
+    verifyBtn.addEventListener('click', async () => {
+      const email = emailInput.value.trim();
+      if (!email) {
+        alert('Please enter your email first.');
+        return;
+      }
+      try {
+        const response = await fetch('/verify-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+        const data = await response.json();
+        if (data.success) {
+          alert('Verification code sent! Check your email.');
+          otpSection.style.display = 'block';
+        } else {
+          alert('Error sending code. Please try again.');
+        }
+      } catch (err) {
+        alert('Server error. Please try again.');
+      }
+    });
+    // STEP 2: Collect OTP digits
+    otpInputs.forEach((box, index) => {
+      box.addEventListener('input', () => {
+        if (box.value.length === 1 && index < otpInputs.length - 1) {
+          otpInputs[index + 1].focus();
+        }
+      });
+    });
+    // STEP 3: Verify OTP
+    verifyOtpBtn.addEventListener('click', async () => {
+      const email = emailInput.value.trim();
+      const code = Array.from(otpInputs).map(box => box.value).join('');
+      if (code.length < 6) {
+        alert('Enter all 6 digits.');
+        return;
+      }
+      try {
+        const response = await fetch('/check-verification', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, code })
+        });
+        const data = await response.json();
+        if (data.success) {
+          alert('Email verified successfully! You can now register.');
+          otpSection.style.display = 'none';
+          verifyBtn.disabled = true;
+        } else {
+          alert('Invalid verification code.');
+        }
+      } catch (err) {
+        alert('Server error while verifying code.');
+      }
+    });
+    document.querySelector('#registerBtn').disabled = true;
+    // Inside "if (data.success)" for OTP verification:
+    document.querySelector('#registerBtn').disabled = false;
   </script>
 </body>
 </html>

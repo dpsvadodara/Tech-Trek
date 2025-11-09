@@ -87,28 +87,6 @@ app.get("/api/test", (req, res) => {
   res.json({ message: "Backend is working perfectly!" });
 });
 
-// Register a new school
-app.post("/api/register", (req, res) => {
-  const { school_name, email, password } = req.body;
-  if (!school_name || !email || !password) {
-    return res.json({ message: "Please fill all fields" });
-  }
-
-  const query = `INSERT INTO schools (school_name, email, password) VALUES (?, ?, ?)`;
-  db.run(query, [school_name, email, password], function (err) {
-    if (err) {
-      if (err.message.includes("UNIQUE")) {
-        res.json({ message: "Email already registered" });
-      } else {
-        console.error(err);
-        res.json({ message: "Error registering school" });
-      }
-    } else {
-      res.json({ message: "Registration successful! You can now log in." });
-    }
-  });
-});
-
 // Login
 app.post("/api/login", (req, res) => {
   const { email, password } = req.body;
@@ -144,4 +122,71 @@ app.get(
 // Start the server
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
+});
+
+// ADMIN PROTECTION helper
+function requireAdmin(req, res, next) {
+  const token = req.headers['x-admin-token'] || req.query.admin_token;
+  if (!process.env.ADMIN_TOKEN) {
+    console.warn("ADMIN_TOKEN not set in env - admin endpoints disabled");
+    return res.status(403).json({ error: "Admin not configured" });
+  }
+  if (token === process.env.ADMIN_TOKEN) return next();
+  return res.status(401).json({ error: "Unauthorized" });
+}
+
+// List all schools (admin)
+app.get("/admin/schools", requireAdmin, (req, res) => {
+  db.all("SELECT id, name, email, phone, google_id, created_at FROM schools ORDER BY id DESC", [], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(rows);
+  });
+});
+
+// Delete school by id (admin)
+app.delete("/admin/schools/:id", requireAdmin, (req, res) => {
+  const id = Number(req.params.id);
+  db.run("DELETE FROM schools WHERE id = ?", [id], function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+    // also delete teams for that school
+    db.run("DELETE FROM teams WHERE school_id = ?", [id], function(err2) {
+      if (err2) console.error("Error cleaning teams", err2.message);
+      res.json({ deleted: this.changes || 0 });
+    });
+  });
+});
+
+// Twilio email verification
+const twilio = require('twilio');
+require('dotenv').config();
+const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+// Example route to send a verification code
+app.post('/verify-email', async (req, res) => {
+  const { email } = req.body;
+  try {
+    const verification = await client.verify.v2.services(process.env.TWILIO_VERIFY_SID)
+      .verifications
+      .create({ to: email, channel: 'email' });
+    res.json({ success: true, message: 'Verification code sent to your email.' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Error sending verification email.' });
+  }
+});
+// Twilio endport
+app.post('/check-verification', async (req, res) => {
+  const { email, code } = req.body;
+  try {
+    const verification_check = await client.verify.v2.services(process.env.TWILIO_VERIFY_SID)
+      .verificationChecks
+      .create({ to: email, code });
+    if (verification_check.status === 'approved') {
+      res.json({ success: true, message: 'Email verified successfully.' });
+    } else {
+      res.json({ success: false, message: 'Invalid verification code.' });
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Error verifying code.' });
+  }
 });
