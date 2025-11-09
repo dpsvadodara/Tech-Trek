@@ -126,7 +126,7 @@ app.listen(PORT, () => {
 
 // ADMIN PROTECTION helper
 function requireAdmin(req, res, next) {
-  const token = req.headers['x-admin-token'] || req.query.admin_token;
+  const token = req.headers['x-admin-token'] || req.query.azdmin_token;
   if (!process.env.ADMIN_TOKEN) {
     console.warn("ADMIN_TOKEN not set in env - admin endpoints disabled");
     return res.status(403).json({ error: "Admin not configured" });
