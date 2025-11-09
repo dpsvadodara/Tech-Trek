@@ -31,6 +31,7 @@ backend/*.sqlite3
 database.sqlite
 database.db
 dump.sql
+clientsecret_google-cloud.json
 
 # Build / output / logs / temp
 dist/
